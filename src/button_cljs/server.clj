@@ -16,6 +16,7 @@
         "<body>"
         "<div>"
         "<p id=\"score\">Score</p>"
+        "<p id=\"button\"></p>"
         "</div>"
         "<script src=\"js/cljs.js\"></script>"
         "</body>"
