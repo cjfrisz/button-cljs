@@ -10,7 +10,6 @@
 
 (ns button-cljs.core
   (:use [domina :only (append! by-class by-id log set-text!)]
-        [domina.css :only (sel)]
         [domina.events :only (listen!)]))
 
 (def game-fps 60)
@@ -69,11 +68,13 @@
 
 (defn flip-button!
   []
-  (swap! game-state (fn [s] (assoc s :button-on (not (:button-on s))))))
+  (let [cur-button (:button-on @game-state)]
+    (swap! game-state assoc :button-on (not cur-button))))
 
 (defn inc-score!
-  [score]
-  (swap! game-state (fn [s] (assoc s score (inc (score s))))))
+  [which-score]
+  (let [cur-score (get @game-state which-score)]
+    (swap! game-state assoc which-score (inc cur-score))))
 
 (defn make-flip-time
   "Returns a number of milliseconds for the next button flip in the range
@@ -101,12 +102,11 @@
 (defn game-loop
   "Main loop of the game."
   []
-  (let [now (cur-time)
-        last (:last-update (deref game-state))
-        delta (- now last)]
+  (let [now (cur-time)]
     (render-game)
-    (update-game! delta)))
+    (update-game! (- now (:last-update (deref game-state))))
+    (swap! game-state assoc :last-update now)))
 
 ;; Start the game when the window loads
 (set! (.-onload js/window) init-game)
-(js/setInterval game-loop (/ game-fps 1000))
+(js/setInterval game-loop (/ 1000 game-fps))
