@@ -3,7 +3,7 @@
 ;; Written by Chris Frisz
 ;; 
 ;; Created 21 Jan 2013
-;; Last modified 22 Jan 2013
+;; Last modified 23 Jan 2013
 ;; 
 ;; Code for simple button game in ClojureScript.
 ;;----------------------------------------------------------------------
@@ -15,6 +15,9 @@
 
 (def game-fps 60)
 
+(def button-flip-min-time 1000)
+(def button-flip-max-time 5000)
+
 (def button-id "button")
 (def hit-id "hit")
 (def miss-id "miss")
@@ -23,7 +26,7 @@
   "Represents the state of the game"
   (atom {}))
 
-(declare render-game)
+(declare render-game flip-button! inc-score! make-flip-time)
 
 (defn cur-time [] (.getTime (js/Date.)))
 
@@ -34,7 +37,8 @@
     :button-on false,
     :hit 0,
     :miss 0,
-    :last-update (cur-time))
+    :last-update (cur-time),
+    :flip-time (make-flip-time))
   (let [game-node (by-id "game")]
     (doseq [id [button-id hit-id miss-id]]
       (when-not (by-id id)
@@ -43,14 +47,9 @@
 
 (def controls
   "Map from key input to the effect they have on the game."
-  {32, #(swap! game-state
-            (fn [s]
-              (let [score (if (:button-on s) :hit :miss)]
-                (assoc s score (inc (get s score))))))
-   70, #(swap! game-state
-               (fn [s]
-                 (assoc s :button-on (not (:button-on s)))))
-   82, init-game})
+  {32 #(inc-score! (if (:button-on @game-state) :hit :miss)),
+   70 flip-button!,
+   82 init-game})
 
 (defn key-handler
   "Handler for keypresses in the game."
@@ -68,10 +67,36 @@
   (set-text! (by-id hit-id) (str "Hits: " (:hit (deref game-state))))
   (set-text! (by-id miss-id) (str "Misses: " (:miss (deref game-state)))))
 
-(defn update-game
+(defn flip-button!
+  []
+  (swap! game-state (fn [s] (assoc s :button-on (not (:button-on s))))))
+
+(defn inc-score!
+  [score]
+  (swap! game-state (fn [s] (assoc s score (inc (score s))))))
+
+(defn make-flip-time
+  "Returns a number of milliseconds for the next button flip in the range
+  specified by button-flip-min-time and button-flip-max-time."
+  []
+  (let [flip-time (rand-int button-flip-max-time)]
+    (if (>= flip-time button-flip-min-time)
+        flip-time
+        (recur))))
+
+(defn set-flip-time!
+  ([] (swap! game-state assoc :flip-time (make-flip-time)))
+  ([time] (swap! game-state assoc :flip-time time)))
+
+(defn update-game!
   "Updates the state of the world."
-  [delta])
-  
+  [delta]
+  (let [time-until-flip (- (:flip-time @game-state) delta)]
+    (if (<= time-until-flip 0)
+        (do
+          (flip-button!)
+          (set-flip-time!))
+        (set-flip-time! time-until-flip))))
 
 (defn game-loop
   "Main loop of the game."
@@ -80,7 +105,7 @@
         last (:last-update (deref game-state))
         delta (- now last)]
     (render-game)
-    (update-game delta)))
+    (update-game! delta)))
 
 ;; Start the game when the window loads
 (set! (.-onload js/window) init-game)
