@@ -1,2 +1,3 @@
 target
 .lein-cljsbuild-compiler-0
+resources/public/js
