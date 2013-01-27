@@ -37,7 +37,6 @@
 (def controls
   "Map from key input to the effect they have on the game."
   {32 #(swap! game-state gs/inc-score),
-   70 #(swap! game-state gs/flip-button),
    82 init-game})
 
 (defn key-handler

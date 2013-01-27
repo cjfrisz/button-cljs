@@ -10,4 +10,8 @@
 
 (ns button-cljs.util)
 
+;;----------------------------------------
+;; Miscellaneous
+;;----------------------------------------
+
 (defn cur-time [] (.getTime (js/Date.)))
