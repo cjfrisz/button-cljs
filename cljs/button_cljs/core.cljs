@@ -1,5 +1,5 @@
 ;;----------------------------------------------------------------------
-;; File client.cljs
+;; File core.cljs
 ;; Written by Chris Frisz
 ;; 
 ;; Created 21 Jan 2013
