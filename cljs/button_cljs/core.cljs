@@ -3,7 +3,7 @@
 ;; Written by Chris Frisz
 ;; 
 ;; Created 21 Jan 2013
-;; Last modified 27 Jan 2013
+;; Last modified 30 Jan 2013
 ;; 
 ;; Code for simple button game in ClojureScript.
 ;;----------------------------------------------------------------------
@@ -30,18 +30,21 @@
 
 (def game-state (atom nil))
 
+(def all-entities (atom {:next-id 0}))
+
 (declare render-game)
 
-(letfn [(add-to-game-node [id]
-          (when-not (by-id id)
-            (append! game-node (str "<p id=\"" id "\"></p>"))))]
-  (defentity (init 0 #(add-to-game-node button-id)))
-  (defentity (init 1 #(add-to-game-node hit-id)))
-  (defentity (init 2 #(add-to-game-node miss-id))))
+(let [game-node (by-id "game")]
+  (letfn [(add-to-game-node [id]
+            (when-not (by-id id)
+              (append! game-node (str "<p id=\"" id "\"></p>"))))]
+    (defentity all-entities (init 0 #(add-to-game-node button-id)))
+    (defentity all-entities (init 1 #(add-to-game-node hit-id)))
+    (defentity all-entities (init 2 #(add-to-game-node miss-id)))))
 
 (defn init-system
   [all-init]
-  (doseq [init-fn (map :init-fn (sort-by (comp :priority :init) all-init))]
+  (doseq [init-fn (map :init-fn (sort-by :priority all-init))]
     (init-fn)))
 
 (defn init-game 
@@ -52,6 +55,7 @@
     (doseq [id [button-id hit-id miss-id]]
       (when-not (by-id id)
         (append! game-node (str "<p id=\"" id "\"></p>")))))
+  (init-system (all-entities-with all-entities init))
   (render-game))
 
 (def controls

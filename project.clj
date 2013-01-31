@@ -21,5 +21,6 @@
       }
     }
   }
+  :source-paths ["clj"]
   :main button-cljs.server)
 
