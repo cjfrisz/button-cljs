@@ -3,22 +3,24 @@
 ;; Written by Chris Frisz
 ;; 
 ;; Created 21 Jan 2013
-;; Last modified 27 Jan 2013
+;; Last modified  2 Feb 2013
 ;; 
 ;; Code for simple button game in ClojureScript.
 ;;----------------------------------------------------------------------
 
 (ns button-cljs.core
-  (:require [button-cljs.game-state :as gs]
-            [button-cljs.util :as util])
-  (:use [domina :only (append! by-class by-id log set-text!)]
-        [domina.events :only (listen!)]))
+  (:require [domina :refer (append! by-class by-id log set-text!)]
+            [domina.events :refer (listen!)]
+            [button-cljs.ces :refer (all-entities get-entities-by
+                                     init-system render-system)]
+            [button-cljs.game-state :refer (make-game-state inc-score
+                                            get-last-update get-flip-time
+                                            flip-button set-flip-time
+                                            set-last-update new-flip-time
+                                            set-flip-time)]
+            [button-cljs.util :refer (cur-time)]))
 
 (def game-fps 60)
-
-(def button-id "button")
-(def hit-id "hit")
-(def miss-id "miss")
 
 (def game-state (atom nil))
 
@@ -27,16 +29,13 @@
 (defn init-game 
   "Initializes the game state."
   []
-  (swap! game-state gs/make-game-state)
-  (let [game-node (by-id "game")]
-    (doseq [id [button-id hit-id miss-id]]
-      (when-not (by-id id)
-        (append! game-node (str "<p id=\"" id "\"></p>")))))
-  (render-game))
+  (swap! game-state make-game-state)
+  (init-system (get-entities-by :init))
+  (render-system (get-entities-by :render) @game-state))
 
 (def controls
   "Map from key input to the effect they have on the game."
-  {32 #(swap! game-state gs/inc-score),
+  {32 #(swap! game-state inc-score),
    82 init-game})
 
 (defn key-handler
@@ -47,31 +46,23 @@
 
 (listen! :keydown key-handler)
         
-(defn render-game
-  "Renders the game. Duh."
-  []
-  (set-text! (by-id button-id)
-             (str "Button: " (if (gs/get-button-on @game-state) "on" "off")))
-  (set-text! (by-id hit-id) (str "Hits: " (gs/get-hit @game-state)))
-  (set-text! (by-id miss-id) (str "Misses: " (gs/get-miss @game-state))))
-
 (defn update-game!
   "Updates the state of the world."
   [now]
-  (let [delta (- now (gs/get-last-update @game-state))
-        time-until-flip (- (gs/get-flip-time @game-state) delta)]
+  (let [delta (- now (get-last-update @game-state))
+        time-until-flip (- (get-flip-time @game-state) delta)]
     (if (<= time-until-flip 0)
         (do
-          (swap! game-state gs/flip-button)
-          (swap! game-state gs/set-flip-time (gs/new-flip-time)))
-        (swap! game-state gs/set-flip-time time-until-flip))
-    (swap! game-state gs/set-last-update now)))
+          (swap! game-state flip-button)
+          (swap! game-state set-flip-time (new-flip-time)))
+        (swap! game-state set-flip-time time-until-flip))
+    (swap! game-state set-last-update now)))
 
 (defn game-loop
   "Main loop of the game."
   []
-  (render-game)
-  (update-game! (util/cur-time)))
+  (render-system (get-entities-by :render) @game-state)
+  (update-game! (cur-time)))
 
 ;; Start the game when the window loads
 (set! (.-onload js/window) init-game)
