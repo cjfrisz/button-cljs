@@ -24,8 +24,6 @@
 
 (def game-state (atom nil))
 
-(declare render-game)
-
 (defn init-game 
   "Initializes the game state."
   []

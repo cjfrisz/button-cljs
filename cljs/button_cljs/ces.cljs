@@ -26,9 +26,10 @@
   ([priority]
      (init priority add-game-element))
   ([priority fn]
-     {:priority priority, :fn fn, :requires [:this-name]}))
+     {:priority priority, :fn fn, :depends [:this-name]}))
 
-(defn render [fn priority] {:fn fn, :priority priority, :requires [:this-name]})
+(defn render [fn priority & depends]
+  {:fn fn, :priority priority, :depends (concat [:this-name] depends)})
 
 (defn this-name [value] {:value value})
 
@@ -58,20 +59,33 @@
     entity))
 
 ;; BUTTON
+(def button-width 50)
+(def button-height 50)
+(def button-x 225)
+(def button-y 225)
+(def button-on-color "#FF0000")
+(def button-off-color "#800000")
 (add-entity {:init (init 1),
-             :render (render (fn [game-state this-name]
-                               (set-text! (by-id (:value this-name))
-                                 (str "Button: "
-                                      (if (get-button-on game-state)
-                                          "on"
-                                          "off"))))
-                             1),
+             :render (render (fn [game-state & {:keys [this-name button]}]
+                               (let [ctx (.getContext (by-id "gameCanvas") "2d")]
+                                 (set! (. ctx -fillStyle)
+                                       (if (get-button-on game-state)
+                                           button-on-color
+                                           button-off-color))
+                                 (.fillRect ctx
+                                   button-x
+                                   button-y
+                                   button-width
+                                   button-height)))
+                             1
+                             ;; Dependencies
+                             :button),
              :button (button),
              :this-name (this-name "button")})
 
 ;; HIT
 (add-entity {:init (init 2),
-             :render (render (fn [game-state this-name]
+             :render (render (fn [game-state & {:keys [this-name]}]
                                (set-text! (by-id (:value this-name))
                                  (str "Hits: " (get-hit game-state))))
                              1),
@@ -80,7 +94,7 @@
 
 ;; MISS 
 (add-entity {:init (init 3)
-             :render (render (fn [game-state this-name]
+             :render (render (fn [game-state & {:keys [this-name]}]
                                (set-text! (by-id (:value this-name))
                                  (str "Misses: " (get-miss game-state))))
                              1),
@@ -91,6 +105,7 @@
 (def canvas-width 500)
 (def canvas-height 500)
 (def canvas-style "border:1px solid #FFFFFF;")
+(def canvas-background "#000000")
 (add-entity {:init (init 0 (fn [this-name]
                              (when-not (by-id (:value this-name))
                                (append! (by-id "game")
@@ -100,13 +115,16 @@
                                              "height=\"" canvas-height "\" "
                                              "style=\"" canvas-style "\">"
                                              "</canvas>"))))),
-             :render (render (fn [_ this-name]
+             :render (render (fn [_ & {:keys [this-name]}]
                                (let [canvas (by-id (:value this-name))
                                      ctx (.getContext canvas "2d")]
-                                   (.clearRect ctx 0 0
-                                               (.-width canvas)
-                                               (.-height canvas))))
+                                 (.clearRect ctx 0 0
+                                   (.-width canvas)
+                                   (.-height canvas))
+                                 #_(set! (. ctx -fillStyle) "#FF0000")
+                                 #_(.fillRect ctx 0 0 25 25)))
                              0)
+             
              :this-name (this-name "gameCanvas")})
 
 ;;--------------------------------------------------
@@ -114,10 +132,12 @@
 
 (defn init-system
   [all-e]
-  (doseq [entity (sort-by (comp :init :priority) <= all-e)]
+  (doseq [entity (sort-by (comp :priority :init) all-e)]
     ((:fn (:init entity)) (:this-name entity))))
 
 (defn render-system
   [all-e game-state]
-  (doseq [entity all-e]
-    ((:fn (:render entity)) game-state (:this-name entity))))
+  (doseq [entity (sort-by (comp :priority :render) <= all-e)]
+    (apply (:fn (:render entity)) game-state
+           (let [depends (:depends (:render entity))]
+             (interleave depends (map (partial get entity) depends))))))
