@@ -3,7 +3,7 @@
 ;; Written by Chris Frisz
 ;; 
 ;; Created 21 Jan 2013
-;; Last modified  2 Feb 2013
+;; Last modified  3 Feb 2013
 ;; 
 ;; Code for simple button game in ClojureScript.
 ;;----------------------------------------------------------------------
