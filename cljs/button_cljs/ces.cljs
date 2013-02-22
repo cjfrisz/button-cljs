@@ -10,6 +10,9 @@
 
 (ns button-cljs.ces
   (:require [domina :refer (append! by-id log set-text!)]
+            [button-cljs.globals :refer (canvas-id button-width button-height
+                                         button-x button-y
+                                         button-on-color button-off-color)]
             [button-cljs.game-state :refer (get-button-on get-hit get-miss)]
             [button-cljs.util :refer (cur-time)]))
 
@@ -21,12 +24,6 @@
   (let [id (:value this-name)]
     (when-not (by-id id)
       (append! (by-id "game") (str "<p id=\"" id "\"></p>")))))
-
-(defn init
-  ([priority]
-     (init priority add-game-element))
-  ([priority fn]
-     {:priority priority, :fn fn, :depends [:this-name]}))
 
 (defn render [fn priority & depends]
   {:fn fn, :priority priority, :depends (concat [:this-name] depends)})
@@ -59,14 +56,8 @@
     entity))
 
 ;; BUTTON
-(def button-width 50)
-(def button-height 50)
-(def button-x 225)
-(def button-y 225)
-(def button-on-color "#FF0000")
-(def button-off-color "#800000")
 (add-entity {:render (render (fn [game-state & {:keys [this-name button]}]
-                               (let [ctx (.getContext (by-id "gameCanvas") "2d")]
+                               (let [ctx (.getContext (by-id canvas-id) "2d")]
                                  (set! (. ctx -fillStyle)
                                        (if (get-button-on game-state)
                                            button-on-color
@@ -84,7 +75,7 @@
 
 ;; HIT
 (add-entity {:render (render (fn [game-state]
-                               (let [ctx (.getContext (by-id "gameCanvas") "2d")]
+                               (let [ctx (.getContext (by-id canvas-id) "2d")]
                                  (set! (. ctx -font) "20pt Callibri")
                                  (set! (. ctx -fillStyle) "black")
                                  (.fillText ctx
@@ -96,7 +87,7 @@
 
 ;; MISS 
 (add-entity {:render (render (fn [game-state]
-                               (let [ctx (.getContext (by-id "gameCanvas") "2d")]
+                               (let [ctx (.getContext (by-id canvas-id) "2d")]
                                  (set! (. ctx -font) "20pt Callibri")
                                  (set! (. ctx -fillStyle) "black")
                                  (.fillText ctx
@@ -107,20 +98,7 @@
              :score (score)})
 
 ;; CANVAS
-(def canvas-width 500)
-(def canvas-height 500)
-(def canvas-style "border:1px solid #FFFFFF;")
-(def canvas-background "#000000")
-(add-entity {:init (init 0 (fn [this-name]
-                             (when-not (by-id (:value this-name))
-                               (append! (by-id "game")
-                                        (str "<canvas "
-                                             "id=\"" (:value this-name) "\" "
-                                             "width=\"" canvas-width "\" "
-                                             "height=\"" canvas-height "\" "
-                                             "style=\"" canvas-style "\">"
-                                             "</canvas>"))))),
-             :render (render (fn [_ & {:keys [this-name]}]
+(add-entity {:render (render (fn [_ & {:keys [this-name]}]
                                (let [canvas (by-id (:value this-name))
                                      ctx (.getContext canvas "2d")]
                                  (.clearRect ctx 0 0
@@ -132,9 +110,7 @@
                                    0
                                    (.-width canvas)
                                    (.-height canvas))))
-                             0)
-             
-             :this-name (this-name "gameCanvas")})
+                             0)})
 
 ;;--------------------------------------------------
 ;; Systems

@@ -3,7 +3,7 @@
 ;; Written by Chris Frisz
 ;; 
 ;; Created 21 Jan 2013
-;; Last modified  3 Feb 2013
+;; Last modified 21 Feb 2013
 ;; 
 ;; Code for simple button game in ClojureScript.
 ;;----------------------------------------------------------------------
@@ -18,17 +18,24 @@
                                             flip-button set-flip-time
                                             set-last-update new-flip-time
                                             set-flip-time)]
+            [button-cljs.globals :refer (game-fps game-state
+                                                  canvas-width canvas-height
+                                                  ]
             [button-cljs.util :refer (cur-time)]))
-
-(def game-fps 60)
-
-(def game-state (atom nil))
 
 (defn init-game 
   "Initializes the game state."
   []
   (swap! game-state make-game-state)
   (init-system (get-entities-by :init))
+  (when-not (by-id canvas-id)
+    (append! (by-id "game")
+             (str "<canvas "
+                  "id=\"" canvas-id "\" "
+                  "width=\"" canvas-width "\" "
+                  "height=\"" canvas-height "\" "
+                  "style=\"" canvas-style "\">"
+                  "</canvas>")))
   (render-system (get-entities-by :render) @game-state))
 
 (def controls
