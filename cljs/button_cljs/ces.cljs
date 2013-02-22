@@ -3,7 +3,7 @@
 ;; Written by Chris Frisz
 ;; 
 ;; Created  2 Feb 2013
-;; Last modified  3 Feb 2013
+;; Last modified 21 Feb 2013
 ;; 
 ;; 
 ;;----------------------------------------------------------------------
@@ -65,8 +65,7 @@
 (def button-y 225)
 (def button-on-color "#FF0000")
 (def button-off-color "#800000")
-(add-entity {:init (init 1),
-             :render (render (fn [game-state & {:keys [this-name button]}]
+(add-entity {:render (render (fn [game-state & {:keys [this-name button]}]
                                (let [ctx (.getContext (by-id "gameCanvas") "2d")]
                                  (set! (. ctx -fillStyle)
                                        (if (get-button-on game-state)
@@ -84,21 +83,27 @@
              :this-name (this-name "button")})
 
 ;; HIT
-(add-entity {:init (init 2),
-             :render (render (fn [game-state & {:keys [this-name]}]
-                               (set-text! (by-id (:value this-name))
-                                 (str "Hits: " (get-hit game-state))))
+(add-entity {:render (render (fn [game-state]
+                               (let [ctx (.getContext (by-id "gameCanvas") "2d")]
+                                 (set! (. ctx -font) "20pt Callibri")
+                                 (set! (. ctx -fillStyle) "black")
+                                 (.fillText ctx
+                                   (str "Hits: " (get-hit game-state))
+                                   10
+                                   35)))
                              1),
-             :this-name (this-name "hit"),
              :score (score)})
 
 ;; MISS 
-(add-entity {:init (init 3)
-             :render (render (fn [game-state & {:keys [this-name]}]
-                               (set-text! (by-id (:value this-name))
-                                 (str "Misses: " (get-miss game-state))))
-                             1),
-             :this-name (this-name "miss"),
+(add-entity {:render (render (fn [game-state]
+                               (let [ctx (.getContext (by-id "gameCanvas") "2d")]
+                                 (set! (. ctx -font) "20pt Callibri")
+                                 (set! (. ctx -fillStyle) "black")
+                                 (.fillText ctx
+                                   (str "Misses: " (get-miss game-state))
+                                   10
+                                   70)))
+                             1)             
              :score (score)})
 
 ;; CANVAS
@@ -121,8 +126,12 @@
                                  (.clearRect ctx 0 0
                                    (.-width canvas)
                                    (.-height canvas))
-                                 #_(set! (. ctx -fillStyle) "#FF0000")
-                                 #_(.fillRect ctx 0 0 25 25)))
+                                 (set! (. ctx -fillStyle) "white")
+                                 (.fillRect ctx
+                                   0
+                                   0
+                                   (.-width canvas)
+                                   (.-height canvas))))
                              0)
              
              :this-name (this-name "gameCanvas")})
