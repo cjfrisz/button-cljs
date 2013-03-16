@@ -10,7 +10,7 @@
   :cljsbuild { 
     :builds {
       :main {
-        :source-path "cljs"
+        :source-path "src/cljs"
         :compiler
         {
           :output-to "resources/public/js/cljs.js"
@@ -21,5 +21,6 @@
       }
     }
   }
+  :source-path "src/clj"
   :main button-cljs.server)
 

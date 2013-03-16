@@ -3,7 +3,7 @@
 ;; Written by Chris Frisz
 ;; 
 ;; Created  2 Feb 2013
-;; Last modified 21 Feb 2013
+;; Last modified 15 Mar 2013
 ;; 
 ;; 
 ;;----------------------------------------------------------------------
@@ -19,14 +19,8 @@
 ;;--------------------------------------------------
 ;; Components
 
-(defn- add-game-element
-  [this-name]
-  (let [id (:value this-name)]
-    (when-not (by-id id)
-      (append! (by-id "game") (str "<p id=\"" id "\"></p>")))))
-
 (defn render [fn priority & depends]
-  {:fn fn, :priority priority, :depends (concat [:this-name] depends)})
+  {:fn fn, :priority priority, :depends depends})
 
 (defn this-name [value] {:value value})
 
@@ -39,6 +33,9 @@
 (defn timer [remaining] {:remaining remaining})
 
 (defn size [width height] {:width width :height height})
+
+#_(defn update [cur-time fn & depends]
+  {:last-time cur-time, :fn fn, :depends depends})
 
 ;;--------------------------------------------------
 ;; Entities
@@ -56,7 +53,7 @@
     entity))
 
 ;; BUTTON
-(add-entity {:render (render (fn [game-state & {:keys [this-name button]}]
+(add-entity {:render (render (fn [game-state & {:keys [button]}]
                                (let [ctx (.getContext (by-id canvas-id) "2d")]
                                  (set! (. ctx -fillStyle)
                                        (if (get-button-on game-state)
@@ -74,7 +71,7 @@
              :this-name (this-name "button")})
 
 ;; HIT
-(add-entity {:render (render (fn [game-state]
+(add-entity {:render (render (fn [game-state & {:keys [score]}]
                                (let [ctx (.getContext (by-id canvas-id) "2d")]
                                  (set! (. ctx -font) "20pt Callibri")
                                  (set! (. ctx -fillStyle) "black")
@@ -82,11 +79,13 @@
                                    (str "Hits: " (get-hit game-state))
                                    10
                                    35)))
-                             1),
+                             1
+                             ;; Dependencies
+                             :score),
              :score (score)})
 
 ;; MISS 
-(add-entity {:render (render (fn [game-state]
+(add-entity {:render (render (fn [game-state & {:keys [score]}]
                                (let [ctx (.getContext (by-id canvas-id) "2d")]
                                  (set! (. ctx -font) "20pt Callibri")
                                  (set! (. ctx -fillStyle) "black")
@@ -94,7 +93,9 @@
                                    (str "Misses: " (get-miss game-state))
                                    10
                                    70)))
-                             1)             
+                             1
+                             ;; Dependencies
+                             :score)             
              :score (score)})
 
 ;; CANVAS
@@ -110,7 +111,10 @@
                                    0
                                    (.-width canvas)
                                    (.-height canvas))))
-                             0)})
+                               0,
+                               ;; Dependencies
+                               :this-name)
+             :this-name (this-name canvas-id)})
 
 ;;--------------------------------------------------
 ;; Systems
@@ -123,6 +127,15 @@
 (defn render-system
   [all-e game-state]
   (doseq [entity (sort-by (comp :priority :render) <= all-e)]
-    (apply (:fn (:render entity)) game-state
-           (let [depends (:depends (:render entity))]
-             (interleave depends (map (partial get entity) depends))))))
+    (let [render (:render entity)]
+      (apply (:fn render) game-state
+             (let [depends (:depends render)]
+               (interleave depends (map (partial get entity) depends)))))))
+
+(defn update-system
+  [all-e cur-time]
+  (doseq [entity all-e]
+    (let [update (:update entity)]
+      (apply (:fn update) (- cur-time (:last-time entity))
+             (let [depends (:depends update)]
+               (interleave depends (map (partial get entity) depends)))))))
