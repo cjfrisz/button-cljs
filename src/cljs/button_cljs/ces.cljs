@@ -3,17 +3,19 @@
 ;; Written by Chris Frisz
 ;; 
 ;; Created  2 Feb 2013
-;; Last modified 15 Mar 2013
+;; Last modified 18 Mar 2013
 ;; 
 ;; 
 ;;----------------------------------------------------------------------
 
 (ns button-cljs.ces
   (:require [domina :refer (append! by-id log set-text!)]
-            [button-cljs.globals :refer (canvas-id button-width button-height
+            [button-cljs.globals :refer (canvas-id game-state
+                                         button-width button-height
                                          button-x button-y
                                          button-on-color button-off-color)]
-            [button-cljs.game-state :refer (get-button-on get-hit get-miss)]
+            [button-cljs.game-state :refer (get-button-on get-hit get-miss
+                                            inc-score)]
             [button-cljs.util :refer (cur-time)]))
 
 ;;--------------------------------------------------
@@ -34,15 +36,19 @@
 
 (defn size [width height] {:width width :height height})
 
-#_(defn update [cur-time fn & depends]
+(defn update [cur-time fn & depends]
   {:last-time cur-time, :fn fn, :depends depends})
+
+(defn key-event [key-code handler]
+  {:key-code key-code, :handler handler})
+                  
 
 ;;--------------------------------------------------
 ;; Entities
 
 (def all-entities (atom []))
 
-(defn add-entity
+(defn add-entity!
   [& cmp*]
   (swap! all-entities (partial apply conj) cmp*))
 
@@ -53,7 +59,7 @@
     entity))
 
 ;; BUTTON
-(add-entity {:render (render (fn [game-state & {:keys [button]}]
+(add-entity! {:render (render (fn [game-state & {:keys [button]}]
                                (let [ctx (.getContext (by-id canvas-id) "2d")]
                                  (set! (. ctx -fillStyle)
                                        (if (get-button-on game-state)
@@ -67,11 +73,11 @@
                              1
                              ;; Dependencies
                              :button),
-             :button (button),
-             :this-name (this-name "button")})
+              :button (button)
+              :key-event (key-event 32 #(swap! game-state inc-score))})
 
 ;; HIT
-(add-entity {:render (render (fn [game-state & {:keys [score]}]
+(add-entity! {:render (render (fn [game-state & {:keys [score]}]
                                (let [ctx (.getContext (by-id canvas-id) "2d")]
                                  (set! (. ctx -font) "20pt Callibri")
                                  (set! (. ctx -fillStyle) "black")
@@ -85,7 +91,7 @@
              :score (score)})
 
 ;; MISS 
-(add-entity {:render (render (fn [game-state & {:keys [score]}]
+(add-entity! {:render (render (fn [game-state & {:keys [score]}]
                                (let [ctx (.getContext (by-id canvas-id) "2d")]
                                  (set! (. ctx -font) "20pt Callibri")
                                  (set! (. ctx -fillStyle) "black")
@@ -99,7 +105,7 @@
              :score (score)})
 
 ;; CANVAS
-(add-entity {:render (render (fn [_ & {:keys [this-name]}]
+(add-entity! {:render (render (fn [_ & {:keys [this-name]}]
                                (let [canvas (by-id (:value this-name))
                                      ctx (.getContext canvas "2d")]
                                  (.clearRect ctx 0 0
@@ -114,7 +120,7 @@
                                0,
                                ;; Dependencies
                                :this-name)
-             :this-name (this-name canvas-id)})
+              :this-name (this-name canvas-id)})
 
 ;;--------------------------------------------------
 ;; Systems
@@ -139,3 +145,10 @@
       (apply (:fn update) (- cur-time (:last-time entity))
              (let [depends (:depends update)]
                (interleave depends (map (partial get entity) depends)))))))
+
+(defn key-event-system
+  [all-e key-event]
+  (doseq [entity all-e]
+    (let [entity-event (:key-event entity)]
+      (when (= (:key-code entity-event) (:keyCode key-event))
+        ((:handler entity-event))))))

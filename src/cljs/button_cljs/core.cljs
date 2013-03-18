@@ -3,7 +3,7 @@
 ;; Written by Chris Frisz
 ;; 
 ;; Created 21 Jan 2013
-;; Last modified 15 Mar 2013
+;; Last modified 18 Mar 2013
 ;; 
 ;; Code for simple button game in ClojureScript.
 ;;----------------------------------------------------------------------
@@ -12,12 +12,14 @@
   (:require [domina :refer (append! by-class by-id log set-text!)]
             [domina.events :refer (listen!)]
             [button-cljs.ces :refer (all-entities get-entities-by
-                                     init-system render-system)]
+                                     init-system render-system
+                                     key-event-system)]
             [button-cljs.game-state :refer (make-game-state inc-score
                                             get-last-update get-flip-time
                                             flip-button set-flip-time
                                             set-last-update new-flip-time
                                             set-flip-time)]
+
             [button-cljs.globals :refer (game-fps game-state
                                          canvas-id
                                          canvas-width canvas-height
@@ -39,16 +41,9 @@
                   "</canvas>")))
   (render-system (get-entities-by :render) @game-state))
 
-(def controls
-  "Map from key input to the effect they have on the game."
-  {32 #(swap! game-state inc-score),
-   82 init-game})
-
 (defn key-handler
-  "Handler for keypresses in the game."
   [key-event]
-  (let [action (get controls (:keyCode key-event))]
-    (when action (action))))
+  (key-event-system (get-entities-by :key-event) key-event))
 
 (listen! :keydown key-handler)
         
